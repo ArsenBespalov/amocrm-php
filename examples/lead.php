@@ -62,10 +62,10 @@ try {
 
     // Или массовое обновление:
     $lead1 = clone $lead;
-    $lead1['id'] = $ids[0];
+    $lead1['id'] = (int)$ids[0];
     $lead1['name'] = 'Тестовая сделка 1.1';
     $lead2 = clone $lead;
-    $lead2['id'] = $ids[1];
+    $lead2['id'] = (int)$ids[1];
     $lead2['name'] = 'Тестовая сделка 1.2';
 
     $ids = $amo->lead->apiUpdate([$lead1, $lead2]);
