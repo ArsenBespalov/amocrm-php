@@ -168,29 +168,58 @@ class Lead extends AbstractModel
      * Метод позволяет обновлять данные по уже существующим сделкам
      *
      * @link https://developers.amocrm.ru/rest_api/leads_set.php
-     * @param int $id Уникальный идентификатор сделки
+     * @param int|array $leads Уникальный идентификатор сделки или массив сделок для пакетного обновления
      * @param string $modified Дата последнего изменения данной сущности
-     * @return bool Флаг успешности выполнения запроса
+     * @return mixed Флаг успешности выполнения запроса или уникальный идентификато сделки, или массив
+     *               при пакетном обновлении.
      * @throws \AmoCRM\Exception
      */
-    public function apiUpdate($id, $modified = 'now')
+    public function apiUpdate($leads, $modified = 'now')
     {
-        $this->checkId($id);
+        if (is_array($leads)) {
+            if (empty($leads)) {
+                $leads = [$this];
+            }
 
-        $parameters = [
-            'leads' => [
-                'update' => [],
-            ],
-        ];
+            $parameters = [
+                'leads' => [
+                    'update' => []
+                ]
+            ];
 
-        $lead = $this->getValues();
-        $lead['id'] = $id;
-        $lead['last_modified'] = strtotime($modified);
+            foreach ($leads as $lead) {
+                $parameters['leads']['update'][] = $lead->getValues();
+            }
 
-        $parameters['leads']['update'][] = $lead;
+            $response = $this->postRequest('/private/api/v2/json/leads/set', $parameters);
 
-        $response = $this->postRequest('/private/api/v2/json/leads/set', $parameters);
+            if (isset($response['leads']['update'])) {
+                $result = array_map(function ($item) {
+                    return $item['id'];
+                }, $response['leads']['update']);
+            } else {
+                return [];
+            }
 
-        return empty($response['leads']['update']['errors']);
+            return count($leads) == 1 ? array_shift($result) : $result;
+        } else {
+            $this->checkId($leads);
+
+            $parameters = [
+                'leads' => [
+                    'update' => [],
+                ],
+            ];
+
+            $lead = $this->getValues();
+            $lead['id'] = $leads;
+            $lead['last_modified'] = strtotime($modified);
+
+            $parameters['leads']['update'][] = $lead;
+
+            $response = $this->postRequest('/private/api/v2/json/leads/set', $parameters);
+
+            return empty($response['leads']['update']['errors']);
+        }
     }
 }
